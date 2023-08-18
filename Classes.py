@@ -13,6 +13,8 @@ if torch.cuda.is_available():
 else:
     DEVICE = "cpu"
 
+DEVICE = "cpu"
+
 # Build the environment class
 class Environment(object):
     def __init__(self, D_s, D_o, D_a, dt, clone = False):
