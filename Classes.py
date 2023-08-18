@@ -181,7 +181,7 @@ class Agent (object):
     
     def copy_weights_to_agent(self, duplicate_agent):
         # This function takes in another agent, duplicate_agent, and loads the parameters of this agent into duplicate agent.
-        duplicate_agent.Layers = self.Layers.clone()
+        duplicate_agent.Layers = copy.deepcopy(self.Layers)
             
     def clone_agent(self):
         agent_clone = Agent(self.D_a, self.D_o, self.D_z, self.D_h, self.dt)
@@ -228,7 +228,8 @@ class Agent (object):
 class Network_optimiser(object):
     def __init__(self, network, lr):
         # Network is a module dict object
-        self.network = network.clone()
+        self.network = copy.deepcopy(network)
+        print(self.network.device)
         self.MS_decay = 0.95
         self.lr = lr
         
@@ -242,12 +243,13 @@ class Network_optimiser(object):
         
     def load_weights_from_agent(self, agent):
         # This method loads the weights of the given network into the network attribute
-        self.network = agent.Layers.clone()
+        self.network = copy.deepcopy(agent.Layers)
+
             
     def copy_weights_to_agent(self, agent):
         # This method loads the weights of the network attribute into the given network
-        agent.Layers = self.network.clone()    
-        print(self.network.device)
+        agent.Layers = copy.deepcopy(self.network)    
+        print(agent.Layers.device)
             
     def average_gradients(self, grads, steps):
         # This function takes in a list of gradients and the number of time steps the gradients are over. 
