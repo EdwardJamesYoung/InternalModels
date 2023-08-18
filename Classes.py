@@ -31,7 +31,7 @@ class Environment(object):
             eigV = 1.1*torch.ones(D_s)
             while not (eigV <= 1).all():
                 self.P = (1 - dt)*torch.eye(D_s, device = DEVICE) + (dt/np.sqrt(D_s))*torch.randn(D_s, D_s, device = DEVICE)
-                eigV, _ = np.linalg.eig(self.P)
+                eigV, _ = torch.linalg.eig(self.P)
                 eigV = abs(eigV)
         else: 
             self.Q = torch.zeros(D_s,D_a, device = DEVICE)
