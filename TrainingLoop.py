@@ -26,7 +26,7 @@ print("Device:", DEVICE)
 Reward_profile = torch.zeros(Total_steps)
 
 # Create the environments and agents
-print("Creating agents and environments:")
+print("Creating agents and environments.")
 agents = [Classes.Agent(D_a, D_o, D_z, D_h, dt)]
 environments = [Classes.Environment(D_s, D_o, D_a, dt)]
 actions = [torch.zeros(D_a, device = DEVICE)]
@@ -41,7 +41,7 @@ for kk in range(1, Num_of_agents):
     Terminate.append(False)
 
 # Create the optimiser
-print("Creating optimiser:")
+print("Creating optimiser.")
 optm = Classes.Network_optimiser(agents[0].Layers, 0.001)
 
 
@@ -53,7 +53,7 @@ for kk in range(Num_of_agents):
     agents[kk].compute_value()
     
 # The training loop
-print("Starting training loop:")
+print("Starting training loop.")
 for step in range(1,Total_steps + 1):
     for kk in range(Num_of_agents):
         
