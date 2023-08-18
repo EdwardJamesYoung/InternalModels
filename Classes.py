@@ -8,6 +8,11 @@ torch.autograd.set_detect_anomaly(True)
 # Basic admin
 np.random.seed(seed = 1234)
 
+if torch.cuda.is_available():
+    DEVICE = "cuda"
+else:
+    DEVICE = "cpu"
+
 # Build the environment class
 class Environment(object):
     def __init__(self, D_s, D_o, D_a, dt, clone = False):
@@ -18,24 +23,24 @@ class Environment(object):
         
         if not clone: 
             # We randomly generate the dynamics of the environment 
-            self.Q = dt*np.sqrt(2/(D_s + D_a))*torch.randn(D_s, D_a)
-            self.K = np.sqrt(2/(D_s + D_o))*torch.randn(D_o, D_s)
-            self.rho = 1/np.sqrt(D_s)*torch.randn(D_s)
+            self.Q = dt*np.sqrt(2/(D_s + D_a))*torch.randn(D_s, D_a, device = DEVICE)
+            self.K = np.sqrt(2/(D_s + D_o))*torch.randn(D_o, D_s, device = DEVICE)
+            self.rho = 1/np.sqrt(D_s)*torch.randn(D_s, device = DEVICE)
             
             # Sample P such that the leading eigenvalue has absolute value below 1
             eigV = 1.1*torch.ones(D_s)
             while not (eigV <= 1).all():
-                self.P = (1 - dt)*torch.eye(D_s) + (dt/np.sqrt(D_s))*torch.randn(D_s, D_s)
+                self.P = (1 - dt)*torch.eye(D_s) + (dt/np.sqrt(D_s))*torch.randn(D_s, D_s, device = DEVICE)
                 eigV, _ = np.linalg.eig(self.P)
                 eigV = abs(eigV)
         else: 
-            self.Q = torch.zeros(D_s,D_a)
-            self.K = torch.zeros(D_o, D_s)
-            self.rho = torch.zeros(D_s)
-            self.P = torch.zeros(D_s, D_s)
+            self.Q = torch.zeros(D_s,D_a, device = DEVICE)
+            self.K = torch.zeros(D_o, D_s, device = DEVICE)
+            self.rho = torch.zeros(D_s, device = DEVICE)
+            self.P = torch.zeros(D_s, D_s, device = DEVICE)
             
         # Define the state vector
-        self.s = torch.zeros(D_s)
+        self.s = torch.zeros(D_s, device = DEVICE)
     
     def step(self, a):
         # Given an action, update the state vector.
@@ -48,7 +53,7 @@ class Environment(object):
         return o, r
     
     def reset(self):
-        self.s = (0.4/np.sqrt(self.D_s))*torch.randn(self.D_s)
+        self.s = (0.4/np.sqrt(self.D_s))*torch.randn(self.D_s, device = DEVICE)
         
     def clone_environment(self):
         env_copy = Environment(self.D_s,self.D_o,self.D_a,self.dt)
@@ -79,11 +84,11 @@ class Agent (object):
         self.v_prev = 0 # The estimated value of the previous state
         self.delta = 0 # The reward prediction error
         
-        self.mu = torch.zeros(D_a) # Expected action
+        self.mu = torch.zeros(D_a, device = DEVICE) # Expected action
         self.sigma = 1 # Action noise
         
-        self.z = torch.zeros(D_z) # Latent activities
-        self.h = torch.zeros(D_h) # Hidden activities
+        self.z = torch.zeros(D_z, device = DEVICE) # Latent activities
+        self.h = torch.zeros(D_h, device = DEVICE) # Hidden activities
         
         self.Layers = nn.ModuleDict({
             "Observation": nn.Linear(D_z + D_o, D_h),
@@ -92,21 +97,23 @@ class Agent (object):
             "Noise": nn.Linear(D_z, 1),
             "Value": nn.Linear(D_z, 1)
         })
+
+        self.Layers.to(DEVICE)
         
         self.Eligibility_traces = {}
         self.Entropy_gradients = {}
         self.Total_gradients = {}
         
         for name, param in self.Layers.named_parameters():
-            self.Eligibility_traces[name] = torch.zeros_like(param)
-            self.Entropy_gradients[name] = torch.zeros_like(param)
-            self.Total_gradients[name] = torch.zeros_like(param)
+            self.Eligibility_traces[name] = torch.zeros_like(param, device = DEVICE)
+            self.Entropy_gradients[name] = torch.zeros_like(param, device = DEVICE)
+            self.Total_gradients[name] = torch.zeros_like(param, device = DEVICE)
         
     def sample_action(self):
         mu_unnorm = self.Layers["Action"](self.z)
         self.mu = mu_unnorm/( self.epsilon + torch.linalg.vector_norm(mu_unnorm) ) 
         self.sigma = self.sig_max*F.sigmoid(self.Layers["Noise"](self.z))
-        a = self.mu + self.sigma*torch.randn(self.D_a)
+        a = self.mu + self.sigma*torch.randn(self.D_a, device = DEVICE)
         a.detach()
         return a
     
@@ -133,7 +140,7 @@ class Agent (object):
         
         # First we zero out all the gradients:
         for name, param in self.Layers.named_parameters():
-            param.grad = torch.zeros_like(param)
+            param.grad = torch.zeros_like(param, device = DEVICE)
 
         # Now we define the function of which we wish to take the derivative:
         loss = - (torch.linalg.vector_norm(a - self.mu)**2)/(2*self.sigma*self.sigma) - self.D_a*torch.log(self.sigma) + self.VE_weight*self.v
@@ -154,7 +161,7 @@ class Agent (object):
         
         # First we zero out all the gradients:
         for name, param in self.Layers.named_parameters():
-            param.grad = torch.zeros_like(param)
+            param.grad = torch.zeros_like(param, device = DEVICE)
             
         # Now we define the function of which we wish to take the derivative:
         Entropy = self.D_a*torch.log(self.sigma)
@@ -188,19 +195,19 @@ class Agent (object):
     
     def reset(self):
         # Reset all the variables of the network
-        self.z = torch.zeros(self.D_z) # Latent activities
-        self.h = torch.zeros(self.D_h) # Hidden activities
+        self.z = torch.zeros(self.D_z, device = DEVICE) # Latent activities
+        self.h = torch.zeros(self.D_h, device = DEVICE) # Hidden activities
         self.v = 0
         self.v_prev = 0 # The estimated value of the previous state
         self.delta = 0 # The reward prediction error
         
-        self.mu = torch.zeros(self.D_a) # Expected action
+        self.mu = torch.zeros(self.D_a, device = DEVICE) # Expected action
         self.sigma = 1 # Action noise
         
         # We also zero out the eligibility traces and the entropy gradients
         for name, param in self.Layers.named_parameters():
-            self.Eligibility_traces[name] = torch.zeros_like(param)
-            self.Entropy_gradients[name] = torch.zeros_like(param)
+            self.Eligibility_traces[name] = torch.zeros_like(param, device = DEVICE)
+            self.Entropy_gradients[name] = torch.zeros_like(param, device = DEVICE)
     
     def sever(self):
         # This function prevents gradients flowing backwards and zeros out the eligibility trace.
@@ -208,9 +215,9 @@ class Agent (object):
         self.recompute_outputs()
         
         for name, param in self.Layers.named_parameters():
-            self.Eligibility_traces[name] = torch.zeros_like(param)
-            self.Entropy_gradients[name] = torch.zeros_like(param)
-            self.Total_gradients[name] = torch.zeros_like(param)
+            self.Eligibility_traces[name] = torch.zeros_like(param, device = DEVICE)
+            self.Entropy_gradients[name] = torch.zeros_like(param, device = DEVICE)
+            self.Total_gradients[name] = torch.zeros_like(param, device = DEVICE)
 
 class Network_optimiser(object):
     def __init__(self, network, lr):
@@ -241,7 +248,7 @@ class Network_optimiser(object):
         
         for name, param in self.network.named_parameters():
             # Begin by zeroing out the gradient step.
-            self.Gradient_step[name] = torch.zeros_like(param)
+            self.Gradient_step[name] = torch.zeros_like(param, device = DEVICE)
             
             # Next, sum over gradients
             for ii in range(len(grads)):

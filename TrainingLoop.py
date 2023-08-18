@@ -16,23 +16,32 @@ Update_steps = 50 # Number of steps to perform between each update
 Num_of_agents = 5 # Number of independent agent environment interactions
 Terminate = [False] # Termination variables for each agent-environment pair
 
+if torch.cuda.is_available():
+    DEVICE = "cuda"
+else:
+    DEVICE = "cpu"
+
+print("Device:", DEVICE)
+
 Reward_profile = torch.zeros(Total_steps)
 
 # Create the environments and agents
+print("Creating agents and environments:")
 agents = [Classes.Agent(D_a, D_o, D_z, D_h, dt)]
 environments = [Classes.Environment(D_s, D_o, D_a, dt)]
-actions = [torch.zeros(D_a)]
-observations = [torch.zeros(D_o)]
+actions = [torch.zeros(D_a, device = DEVICE)]
+observations = [torch.zeros(D_o, device = DEVICE)]
 rewards = [0]
 for kk in range(1, Num_of_agents):
     agents.append(agents[0].clone_agent())
     environments.append(environments[0].clone_environment())
-    actions.append(torch.zeros(D_a))
-    observations.append(torch.zeros(D_o))
+    actions.append(torch.zeros(D_a, device = DEVICE))
+    observations.append(torch.zeros(D_o, device = DEVICE))
     rewards.append(0)
     Terminate.append(False)
 
 # Create the optimiser
+print("Creating optimiser:")
 optm = Classes.Network_optimiser(agents[0].Layers, 0.001)
 
 
@@ -44,6 +53,7 @@ for kk in range(Num_of_agents):
     agents[kk].compute_value()
     
 # The training loop
+print("Starting training loop:")
 for step in range(1,Total_steps + 1):
     for kk in range(Num_of_agents):
         
