@@ -48,12 +48,10 @@ class Environment(object):
         # Given an action, update the state vector.
         self.s = self.P@self.s + self.Q@a
         self.s.detach()
-        print(self.s.device)
         
         # Return the observation of the next state, along with the reward associated with that state. 
         o = (self.K@self.s).detach()
         r = torch.dot(self.rho,self.s).detach()
-        print(o.device, r.device)
         return o, r
     
     def reset(self):
@@ -117,7 +115,6 @@ class Agent (object):
         self.sigma = self.sig_max*F.sigmoid(self.Layers["Noise"](self.z))
         a = self.mu + self.sigma*torch.randn(self.D_a, device = DEVICE)
         a.detach()
-        print(a.device)
         return a
     
     def compute_value(self):
@@ -194,7 +191,6 @@ class Agent (object):
         self.update_total_gradient() # We compute g_t = \delta_t ET_t + grad H[ pi(z_t) ]
         a = self.sample_action() # We sample action A_{t+1} 
         self.update_EntGrad() # We calculate the entropy gradient for policy pi(z_{t+1})
-        print(a.device)
         return a # We return the action A_{t+1}
     
     def reset(self):
@@ -227,8 +223,6 @@ class Network_optimiser(object):
     def __init__(self, network, lr):
         # Network is a module dict object
         self.network = copy.deepcopy(network)
-        for name, param in self.network.named_parameters():
-            print(param.device)
         self.MS_decay = 0.95
         self.lr = lr
         
@@ -248,8 +242,6 @@ class Network_optimiser(object):
     def copy_weights_to_agent(self, agent):
         # This method loads the weights of the network attribute into the given network
         agent.Layers = copy.deepcopy(self.network)    
-        for name, param in agent.Layers.named_parameters():
-            print(param.device)
             
     def average_gradients(self, grads, steps):
         # This function takes in a list of gradients and the number of time steps the gradients are over. 
