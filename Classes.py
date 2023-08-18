@@ -95,14 +95,12 @@ class Agent (object):
         self.h = torch.zeros(D_h, device = DEVICE) # Hidden activities
         
         self.Layers = nn.ModuleDict({
-            "Observation": nn.Linear(D_z + D_o, D_h),
-            "Hidden-Latent": nn.Linear(D_h + D_a, D_z),
-            "Action": nn.Linear(D_z, D_a),
-            "Noise": nn.Linear(D_z, 1),
-            "Value": nn.Linear(D_z, 1)
+            "Observation": nn.Linear(D_z + D_o, D_h, device = DEVICE),
+            "Hidden-Latent": nn.Linear(D_h + D_a, D_z, device = DEVICE),
+            "Action": nn.Linear(D_z, D_a, device = DEVICE),
+            "Noise": nn.Linear(D_z, 1, device = DEVICE),
+            "Value": nn.Linear(D_z, 1, device = DEVICE)
         })
-
-        self.Layers.to(DEVICE)
         
         self.Eligibility_traces = {}
         self.Entropy_gradients = {}
@@ -229,7 +227,8 @@ class Network_optimiser(object):
     def __init__(self, network, lr):
         # Network is a module dict object
         self.network = copy.deepcopy(network)
-        print(self.network.device)
+        for name, param in self.network.named_parameters():
+            print(param.device)
         self.MS_decay = 0.95
         self.lr = lr
         
@@ -249,7 +248,8 @@ class Network_optimiser(object):
     def copy_weights_to_agent(self, agent):
         # This method loads the weights of the network attribute into the given network
         agent.Layers = copy.deepcopy(self.network)    
-        print(agent.Layers.device)
+        for name, param in agent.Layers.named_parameters():
+            print(param.device)
             
     def average_gradients(self, grads, steps):
         # This function takes in a list of gradients and the number of time steps the gradients are over. 
