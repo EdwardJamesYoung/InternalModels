@@ -32,9 +32,9 @@ Reward_profile = torch.zeros(Total_steps)
 print("Creating agents and environments.")
 agent = Classes.Agent(D_a, D_o, D_z, D_h, dt, Num_of_agents, lr)
 environment = Classes.Environment(D_s, D_o, D_a, dt, Num_of_agents)
-actions = torch.zeros(Num_of_agents, D_a)
-observations = torch.zeros(Num_of_agents, D_o)
-rewards = torch.zeros(Num_of_agents, 1)
+actions = torch.zeros(Num_of_agents, D_a, device=DEVICE)
+observations = torch.zeros(Num_of_agents, D_o, device=DEVICE)
+rewards = torch.zeros(Num_of_agents, 1, device=DEVICE)
 
 # Here we run the training loop for our agents
 

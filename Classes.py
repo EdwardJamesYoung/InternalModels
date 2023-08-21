@@ -69,12 +69,12 @@ class Agent(object):
         self.r_bar = 0 # Running average of the rewards, shared across all agents
         self.r_decay = 0.01 # Decay rate of the exponential recency weighted average of the rewards
         self.r_decay_norm = 0 # Normalisation for the average reward update
-        self.v = torch.zeros(self.N, 1) # The estimated value of the current state
-        self.v_prev = torch.zeros(self.N, 1) # The estimated value of the previous state
-        self.delta = torch.zeros(self.N, 1)# The reward prediction error
+        self.v = torch.zeros(self.N, 1, device = DEVICE) # The estimated value of the current state
+        self.v_prev = torch.zeros(self.N, 1, device = DEVICE) # The estimated value of the previous state
+        self.delta = torch.zeros(self.N, 1, device = DEVICE) # The reward prediction error
         
         self.mu = torch.zeros(self.N, D_a, device = DEVICE) # Expected action
-        self.sigma = torch.ones(self.N, 1) # Action noise
+        self.sigma = torch.ones(self.N, 1, device = DEVICE) # Action noise
         
         self.z = torch.zeros(self.N, D_z, device = DEVICE) # Latent activities
         self.h = torch.zeros(self.N, D_h, device = DEVICE) # Hidden activities
@@ -115,7 +115,7 @@ class Agent(object):
         self.update_r_bar(r) # Update the running average of the rewards
         self.v_prev = self.v # Update the previous value estimate
         self.compute_value() # Compute the current value estimate
-        self.delta = r.unsqueeze(1) - self.r_bar*torch.ones(self.N,1) + self.v - self.v_prev # Compute the reward prediction error. This has dimensions (N, 1)
+        self.delta = r.unsqueeze(1) - self.r_bar*torch.ones(self.N,1,device=DEVICE) + self.v - self.v_prev # Compute the reward prediction error. This has dimensions (N, 1)
     
     def update_activities(self, a, o):
         self.h = F.tanh(self.Layers["Observation"]( torch.cat((self.z, o), dim = 1) )) 
