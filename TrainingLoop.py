@@ -22,7 +22,7 @@ if torch.cuda.is_available():
 else:
     DEVICE = "cpu"
 
-#DEVICE = "cpu"
+DEVICE = "cpu"
 
 print("Device:", DEVICE)
 

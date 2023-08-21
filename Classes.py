@@ -13,7 +13,7 @@ if torch.cuda.is_available():
 else:
     DEVICE = "cpu"
 
-#DEVICE = "cpu"
+DEVICE = "cpu"
 
 # Build the environment class
 class Environment(object):
