@@ -25,6 +25,8 @@ if torch.cuda.is_available():
 else:
     DEVICE = "cpu"
 
+DEVICE = "cpu"
+
 print("Device:", DEVICE)
 
 Reward_profile = torch.zeros(Total_steps)
