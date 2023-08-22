@@ -3,6 +3,7 @@ from torch import nn
 import torch.nn.functional as F
 import copy
 import torch
+import os
 torch.autograd.set_detect_anomaly(True)
 
 # Basic admin
@@ -12,8 +13,6 @@ if torch.cuda.is_available():
     DEVICE = "cuda"
 else:
     DEVICE = "cpu"
-
-DEVICE = "cpu"
 
 # Build the environment class
 class Environment(object):
@@ -27,7 +26,7 @@ class Environment(object):
         # We randomly generate the dynamics of the environment 
         self.Q = dt*np.sqrt(2/(D_s + D_a))*torch.randn(D_a, D_s, device = DEVICE)
         self.K = np.sqrt(2/(D_s + D_o))*torch.randn(D_s, D_o, device = DEVICE)
-        self.rho = 1/np.sqrt(D_s)*torch.randn(D_s, device = DEVICE)
+        self.rho = (1/np.sqrt(D_s))*torch.randn(D_s, device = DEVICE)
         
         # Sample P such that the leading eigenvalue has absolute value below 1
         eigV = 1.1*torch.ones(D_s)
@@ -62,9 +61,9 @@ class Agent(object):
         self.dt = dt # Time step parameter
         self.sig_max = 1 # The maximum level of action noise
         self.VE_weight = 1 # Weighting given to the value-error term in the loss
-        self.lbda = 0.99 # Decay parameter for the eligibility trace
+        self.lbda = 0.98 # Decay parameter for the eligibility trace
         self.entropy_reg = 0.01 # Entropy regularisation of the policy
-        self.MS_decay = 0.95 # Decay rate of the moving squared sum of the gradients
+        self.MS_decay = 0.90 # Decay rate of the moving squared sum of the gradients
         self.lr = lr # Learning rate of the agent
         self.r_bar = 0 # Running average of the rewards, shared across all agents
         self.r_decay = 0.01 # Decay rate of the exponential recency weighted average of the rewards
@@ -98,6 +97,10 @@ class Agent(object):
             self.MS[name] = torch.zeros_like(param, device = DEVICE)
             for kk in range(self.N):
                 self.Eligibility_traces[kk][name] = torch.zeros_like(param, device = DEVICE)
+
+    def load_weights(self, path):
+        # This method loads the weights from a given path
+        self.Layers.load_state_dict(torch.load(path))
             
     def sample_action(self):
         mu_unnorm = self.Layers["Action"](self.z) # mu_unnorm has dimensions (N, D_a)
@@ -213,52 +216,3 @@ class Agent(object):
             self.MS[name] = self.MS_decay*self.MS[name] + (1 - self.MS_decay)*self.Total_gradients[name]**2
             # Now perform the RMSprop update
             param.data = param.data + self.lr*self.Total_gradients[name]/(torch.sqrt(self.MS[name]) + 1e-8)
-
-
-
-class Network_optimiser(object):
-    def __init__(self, network, lr):
-        # Network is a module dict object
-        self.network = copy.deepcopy(network)
-        self.MS_decay = 0.95
-        self.lr = lr
-        
-        self.Gradient_step = {}
-        self.MS = {}
-        self.Update_step = {}
-        for name, param in self.network.named_parameters():
-            self.Gradient_step[name] = torch.zeros_like(param, device = DEVICE)
-            self.MS[name] = torch.zeros_like(param, device = DEVICE)
-            self.Update_step[name] = torch.zeros_like(param, device = DEVICE)
-
-
-
-            
-    def copy_weights_to_agent(self, agent):
-        # This method loads the weights of the network attribute into the given network
-        agent.Layers = copy.deepcopy(self.network)    
-            
-    def average_gradients(self, grads, steps):
-        # This function takes in a list of gradients and the number of time steps the gradients are over. 
-        # We then sum the gradients, average across agents and across time, and save them in Gradient_step
-        
-        for name, param in self.network.named_parameters():
-            # Begin by zeroing out the gradient step.
-            self.Gradient_step[name] = torch.zeros_like(param, device = DEVICE)
-            
-            # Next, sum over gradients
-            for ii in range(len(grads)):
-                self.Gradient_step[name] = self.Gradient_step[name] + grads[ii][name]
-            
-            # Finally, average
-            self.Gradient_step[name] = self.Gradient_step[name]/( len(grads)*steps )
-        
-    def update(self):
-        # This is to be called after the Gradient_step has been calculated. 
-        # We update the MS parameter, then perform the update
-        for name, param in self.network.named_parameters():
-            # Update the RMS parameter
-            self.MS[name] = self.MS_decay*self.MS[name] + ( 1 - self.MS_decay )*(self.Gradient_step[name]**2)
-            # Perform the update
-            param = param + self.lr*( self.Gradient_step[name] )/torch.sqrt( self.MS[name] + 0.00001) 
-

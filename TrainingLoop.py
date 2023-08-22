@@ -1,28 +1,29 @@
 import Classes
 import torch
 import numpy as np
+import os
+from datetime import datetime
 
+current_date = datetime.now()
+formatted_date = current_date.strftime('%m-%d-%H')
 
 # We define the parameters of the system
-D_s = 20 # Dimension of the latent environmental state
-D_o = 5 # Dimension of the observation space
-D_a = 4 # Dimension of the action space
-D_z = 10 # Dimension of the internal latent space
-D_h = 20 # Dimesnion of the hidden layer in the network
+D_s = 100 # Dimension of the latent environmental state
+D_o = 10 # Dimension of the observation space
+D_a = 10 # Dimension of the action space
+D_z = 25 # Dimension of the internal latent space
+D_h = 50 # Dimesnion of the hidden layer in the network
 dt = 0.1 # Time-step parameter
-T_prob = 0.01 # Termination probability for each time-step
-lr = 0.001
-Total_steps = 250 # The total number of training steps
-Update_steps = 50 # Number of steps to perform between each update
+T_prob = 0.002 # Termination probability for each time-step
+lr = 0.001 # Learning rate for the network
+Total_steps = 100000 # The total number of training steps
+Update_steps = 100 # Number of steps to perform between each update
 Num_of_agents = 32 # Number of independent agent environment interactions
-Terminate = False # Termination variables for each agent-environment pair
 
 if torch.cuda.is_available():
     DEVICE = "cuda"
 else:
     DEVICE = "cpu"
-
-DEVICE = "cpu"
 
 print("Device:", DEVICE)
 
@@ -67,4 +68,10 @@ for step in range(1,Total_steps + 1):
         agent.update_EntGrad()
         print("Update performed at time t =", step)
 
-print(Reward_profile)
+# We now save the network weights
+current_directory = os.getcwd()
+save_path = os.path.join(current_directory,'SavedNetworks')
+os.makedirs(save_path, exist_ok = True)
+file_name = f'Network_weights_{formatted_date}.pth'
+save_path = os.path.join(save_path, file_name)
+torch.save(agent.Layers.state_dict(), save_path)
