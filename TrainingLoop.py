@@ -8,17 +8,17 @@ current_date = datetime.now()
 formatted_date = current_date.strftime('%m-%d-%H')
 
 # We define the parameters of the system
-D_s = 100 # Dimension of the latent environmental state
+D_s = 250 # Dimension of the latent environmental state
 D_o = 10 # Dimension of the observation space
 D_a = 10 # Dimension of the action space
-D_z = 25 # Dimension of the internal latent space
-D_h = 50 # Dimesnion of the hidden layer in the network
+D_z = 40 # Dimension of the internal latent space
+D_h = 100 # Dimesnion of the hidden layer in the network
 dt = 0.1 # Time-step parameter
 T_prob = 0.002 # Termination probability for each time-step
 lr = 0.001 # Learning rate for the network
 Total_steps = 100000 # The total number of training steps
 Update_steps = 100 # Number of steps to perform between each update
-Num_of_agents = 32 # Number of independent agent environment interactions
+Num_of_agents = 64 # Number of independent agent environment interactions
 
 if torch.cuda.is_available():
     DEVICE = "cuda"
