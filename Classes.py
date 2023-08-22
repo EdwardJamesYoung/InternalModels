@@ -14,7 +14,7 @@ if torch.cuda.is_available():
 else:
     DEVICE = "cpu"
 
-#DEVICE = "cpu"
+DEVICE = "cpu"
 
 # Build the environment class
 class Environment(object):
@@ -62,10 +62,10 @@ class Agent(object):
         self.N = num_of_agents # The number of agents in the environment
         self.dt = dt # Time step parameter
         self.sig_max = 1 # The maximum level of action noise
-        self.VE_weight = 1 # Weighting given to the value-error term in the loss
+        self.VE_weight = 0.5 # Weighting given to the value-error term in the loss
         self.lbda = 0.98 # Decay parameter for the eligibility trace
         self.entropy_reg = 0.01 # Entropy regularisation of the policy
-        self.MS_decay = 0.90 # Decay rate of the moving squared sum of the gradients
+        self.MS_decay = 0.95 # Decay rate of the moving squared sum of the gradients
         self.lr = lr # Learning rate of the agent
         self.r_bar = 0 # Running average of the rewards, shared across all agents
         self.r_decay = 0.01 # Decay rate of the exponential recency weighted average of the rewards
@@ -123,8 +123,8 @@ class Agent(object):
         self.delta = r.unsqueeze(1) - self.r_bar*torch.ones(self.N,1,device=DEVICE) + self.v - self.v_prev # Compute the reward prediction error. This has dimensions (N, 1)
     
     def update_activities(self, a, o):
-        self.h = F.tanh(self.Layers["Observation"]( torch.cat((self.z, o), dim = 1) )) 
-        self.z = self.z + self.dt*F.relu(self.Layers["Hidden-Latent"]( torch.cat((self.h, a), dim = 1) ))
+        self.h = F.relu(self.Layers["Observation"]( torch.cat((self.z, o), dim = 1) )) 
+        self.z = self.z + self.dt*F.tanh(self.Layers["Hidden-Latent"]( torch.cat((self.h, a), dim = 1) ))
         
     def update_r_bar(self, r):
         self.r_decay_norm = self.r_decay_norm + self.r_decay*(1 - self.r_decay_norm) # Compute the normalisation constant for exponential recency weighted averaging
