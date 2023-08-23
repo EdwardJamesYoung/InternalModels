@@ -61,7 +61,8 @@ class Agent(object):
         self.D_h = D_h # The dimension of the hidden activity layer
         self.N = num_of_agents # The number of agents in the environment
         self.dt = dt # Time step parameter
-        self.sig_max = 1 # The maximum level of action noise
+        self.sig_max = 2 # The maximum level of action noise
+        self.sig_min = 0.01 # The minimum level of action noise
         self.VE_weight = 0.5 # Weighting given to the value-error term in the loss
         self.lbda = 0.98 # Decay parameter for the eligibility trace
         self.entropy_reg = 0.01 # Entropy regularisation of the policy
@@ -107,7 +108,7 @@ class Agent(object):
     def sample_action(self):
         mu_unnorm = self.Layers["Action"](self.z) # mu_unnorm has dimensions (N, D_a)
         self.mu = F.normalize(mu_unnorm, p = 2, dim = 1) # normalize the action to have unit norm for each agent. mu has dimensions (N, D_a)
-        self.sigma = self.sig_max*F.sigmoid(self.Layers["Noise"](self.z)) # sigma has dimensions (N, 1)
+        self.sigma = (self.sig_max - self.sig_min)*F.sigmoid(self.Layers["Noise"](self.z)) + self.sig_min # sigma has dimensions (N, 1)
         a = self.mu + self.sigma*torch.randn(self.N, self.D_a, device = DEVICE) # a has dimensions (N, D_a)
         a.detach()
         return a
@@ -124,7 +125,7 @@ class Agent(object):
     
     def update_activities(self, a, o):
         self.h = F.relu(self.Layers["Observation"]( torch.cat((self.z, o), dim = 1) )) 
-        self.z = self.z + self.dt*F.tanh(self.Layers["Hidden-Latent"]( torch.cat((self.h, a), dim = 1) ))
+        self.z = (1 - self.dt)*self.z + self.dt*F.tanh(self.Layers["Hidden-Latent"]( torch.cat((self.h, a), dim = 1) ))
         
     def update_r_bar(self, r):
         self.r_decay_norm = self.r_decay_norm + self.r_decay*(1 - self.r_decay_norm) # Compute the normalisation constant for exponential recency weighted averaging
@@ -141,6 +142,7 @@ class Agent(object):
             for name, param in self.Layers.named_parameters():
                 param.grad = torch.zeros_like(param, device = DEVICE) # Zero out the gradients
             loss[kk].backward(retain_graph = True)
+            nn.utils.clip_grad_value_(self.Layers.parameters(), clip_value=1) # Clip the gradients to have absolute value at most 1
             for name, param in self.Layers.named_parameters(): 
                 self.Eligibility_traces[kk][name] = self.lbda*self.Eligibility_traces[kk][name] + param.grad
                 
@@ -149,7 +151,7 @@ class Agent(object):
         self.compute_value()
         mu_unnorm = self.Layers["Action"](self.z) # mu_unnorm has dimensions (N, D_a)
         self.mu = F.normalize(mu_unnorm, p = 2, dim = 1) # normalize the action to have unit norm for each agent. mu has dimensions (N, D_a)
-        self.sigma = self.sig_max*F.sigmoid(self.Layers["Noise"](self.z)) # sigma has dimensions (N, 1)
+        self.sigma = (self.sig_max - self.sig_min)*F.sigmoid(self.Layers["Noise"](self.z)) + self.sig_min # sigma has dimensions (N, 1)
     
     def update_EntGrad(self):
         # Here we find the gradients with respect to the entropy. 
@@ -161,6 +163,7 @@ class Agent(object):
         # Now we define the function of which we wish to take the derivative:
         Entropy = self.D_a*torch.log(self.sigma).mean() 
         Entropy.backward(retain_graph = True)
+        nn.utils.clip_grad_value_(self.Layers.parameters(), clip_value=1) # Clip the gradients to have absolute value at most 1
         
         for name, param in self.Layers.named_parameters():
             self.Entropy_gradients[name] = param.grad
@@ -186,7 +189,7 @@ class Agent(object):
         self.z = torch.zeros(self.N, self.D_z, device = DEVICE) # Latent activities
         self.h = torch.zeros(self.N, self.D_h, device = DEVICE) # Hidden activities
         self.v = torch.zeros(self.N, 1, device = DEVICE) # Value estimates
-        self.v_prev = torch.zeros(self.N,1, device = DEVICE) # Value estimate from the previous time step
+        self.v_prev = torch.zeros(self.N, 1, device = DEVICE) # Value estimate from the previous time step
         self.delta = torch.zeros(self.N, 1, device = DEVICE) # TD errors
 
         self.mu = torch.zeros(self.N, self.D_a, device = DEVICE) # Expected action
