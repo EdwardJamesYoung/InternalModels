@@ -77,6 +77,7 @@ for step in range(1,Total_steps + 1):
         agent.update_weights(num_of_steps=Update_steps)
         agent.sever()
         agent.update_EntGrad()
+        gc.collect() # We perform garbage collection to free up memory
         print("Update performed at time t =", step)
 
 # Create save_path which directs to the place we wish to save our results. 
