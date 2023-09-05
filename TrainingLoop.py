@@ -4,6 +4,8 @@ import numpy as np
 import os
 import matplotlib.pyplot as plt
 from datetime import datetime
+import gc
+# import wandb
 
 current_date = datetime.now()
 formatted_date = current_date.strftime('%m-%d-%H')
@@ -59,9 +61,10 @@ for step in range(1,Total_steps + 1):
 
     # We randomly terminate episodes, and start the agent in a newly initialised environment
     if np.random.binomial(1, T_prob):
-        environment.reset()
-        agent.reset()
-        actions = agent.sample_action()
+        environment.reset() # We reset the environment
+        agent.reset() # We reset the agent's internal state
+        gc.collect() # We perform garbage collection to free up memory
+        actions = agent.sample_action() 
         agent.compute_value()
         print("Episode Terminated at time t =", step)
 
