@@ -67,6 +67,7 @@ for step in range(1,Total_steps + 1):
         gc.collect() # We perform garbage collection to free up memory
         if DEVICE == "cuda":   
             torch.cuda.empty_cache() # We empty the GPU cache
+            print(torch.cuda.memory_summary(device=None, abbreviated=True))
         actions = agent.sample_action() 
         agent.compute_value()
         print("Episode Terminated at time t =", step)
@@ -83,7 +84,6 @@ for step in range(1,Total_steps + 1):
         gc.collect() # We perform garbage collection to free up memory
         if DEVICE == "cuda":
             torch.cuda.empty_cache() # We empty the GPU cache
-            print(torch.cuda.memory_summary(device=None, abbreviated=False))
         print("Update performed at time t =", step)
 
 # Create save_path which directs to the place we wish to save our results. 
