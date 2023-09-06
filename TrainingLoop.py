@@ -7,6 +7,9 @@ from datetime import datetime
 import gc
 # import wandb
 
+# Basic admin
+np.random.seed(seed = 1234)
+
 current_date = datetime.now()
 formatted_date = current_date.strftime('%m-%d-%H')
 
@@ -17,18 +20,16 @@ D_a = 10 # Dimension of the action space
 D_z = 40 # Dimension of the internal latent space
 D_h = 80 # Dimension of the hidden layer in the network
 dt = 0.1 # Time-step parameter
-T_prob = 0.004 # Termination probability for each time-step
+T_prob = 0.002 # Termination probability for each time-step
 lr = 0.001 # Learning rate for the network
 Total_steps = 150000 # The total number of training steps
 Update_steps = 50 # Number of steps to perform between each update
-Num_of_agents = 40 # Number of independent agent environment interactions
+Num_of_agents = 48 # Number of independent agent environment interactions
 
 if torch.cuda.is_available():
     DEVICE = "cuda"
 else:
     DEVICE = "cpu"
-
-DEVICE = "cpu"
 
 print("Device:", DEVICE)
 
@@ -64,6 +65,8 @@ for step in range(1,Total_steps + 1):
         environment.reset() # We reset the environment
         agent.reset() # We reset the agent's internal state
         gc.collect() # We perform garbage collection to free up memory
+        if DEVICE == "cuda":   
+            torch.cuda.empty_cache() # We empty the GPU cache
         actions = agent.sample_action() 
         agent.compute_value()
         print("Episode Terminated at time t =", step)
@@ -78,6 +81,9 @@ for step in range(1,Total_steps + 1):
         agent.sever()
         agent.update_EntGrad()
         gc.collect() # We perform garbage collection to free up memory
+        if DEVICE == "cuda":
+            torch.cuda.empty_cache() # We empty the GPU cache
+            print(torch.cuda.memory_summary(device=None, abbreviated=False))
         print("Update performed at time t =", step)
 
 # Create save_path which directs to the place we wish to save our results. 

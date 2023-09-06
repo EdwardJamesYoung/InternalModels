@@ -14,8 +14,6 @@ if torch.cuda.is_available():
 else:
     DEVICE = "cpu"
 
-DEVICE = "cpu"
-
 # Build the environment class
 class Environment(object):
     def __init__(self, D_s, D_o, D_a, dt, num_of_agents):
@@ -110,8 +108,7 @@ class Agent(object):
         self.mu = F.normalize(mu_unnorm, p = 2, dim = 1) # normalize the action to have unit norm for each agent. mu has dimensions (N, D_a)
         self.sigma = (self.sig_max - self.sig_min)*F.sigmoid(self.Layers["Noise"](self.z)) + self.sig_min # sigma has dimensions (N, 1)
         a = self.mu + self.sigma*torch.randn(self.N, self.D_a, device = DEVICE) # a has dimensions (N, D_a)
-        a.detach()
-        return a
+        return a.detach() 
     
     def compute_value(self):
         self.v = self.Layers["Value"](self.z) # v has dimensions (N, 1)
@@ -180,9 +177,9 @@ class Agent(object):
         self.update_activities(a, o) # Now we calculate z_{t+1}
         self.compute_delta(r) # We compute \delta_t = R_{t+1} - bar{R}_{t+1} + V(z_{t+1}) - V(z_t)
         self.update_total_gradient() # We compute g_t = \delta_t ET_t + grad H[ pi(z_t) ]
-        a = self.sample_action() # We sample action A_{t+1} 
+        next_a = self.sample_action() # We sample action A_{t+1} 
         self.update_EntGrad() # We calculate the entropy gradient for policy pi(z_{t+1})
-        return a # We return the action A_{t+1}
+        return next_a # We return the action A_{t+1}
     
     def reset(self):
         # Reset all the variables of the network
