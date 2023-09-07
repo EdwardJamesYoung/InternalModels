@@ -197,7 +197,7 @@ class Agent(object):
         self.sigma = torch.zeros(self.N, device = DEVICE) # Action noise
 
         # We detach the computational graph
-        self.z.backward(torch.zeros_like(self.z), retain_graph = False) 
+        # self.z.backward(torch.zeros_like(self.z), retain_graph = False) 
         
         # We also zero out the eligibility traces and the entropy gradients
         for name, param in self.Layers.named_parameters():
@@ -208,7 +208,7 @@ class Agent(object):
     def sever(self):
         # This function prevents gradients flowing backwards and zeros out the eligibility trace.
         self.z = self.z.clone().detach()
-        self.z.backward(torch.zeros_like(self.z), retain_graph = False) # This prevents gradients flowing backwards
+        # self.z.backward(torch.zeros_like(self.z), retain_graph = False) # This prevents gradients flowing backwards
         self.recompute_outputs()
         
         for name, param in self.Layers.named_parameters():
