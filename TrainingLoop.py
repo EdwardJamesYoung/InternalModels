@@ -21,8 +21,8 @@ D_z = 40 # Dimension of the internal latent space
 D_h = 80 # Dimension of the hidden layer in the network
 dt = 0.2 # Time-step parameter
 T_prob = 0.002 # Termination probability for each time-step
-lr = 0.0015 # Learning rate for the network
-Total_steps = 60000 # The total number of training steps
+lr = 0.001 # Learning rate for the network
+Total_steps = 90000 # The total number of training steps
 Update_steps = 30 # Number of steps to perform between each update
 Num_of_agents = 50 # Number of independent agent environment interactions
 
