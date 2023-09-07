@@ -95,7 +95,7 @@ class Agent(object):
         self.MS = {} # This is a dictionary containing the moving squared sum of the gradients for each parameter
         
         for name, param in self.Layers.named_parameters():
-            self.Total_gradients[name] = torch.zeros_like(param, device = DEVICE, requres_grad = False) 
+            self.Total_gradients[name] = torch.zeros_like(param, device = DEVICE, requires_grad = False) 
             self.Entropy_gradients[name] = torch.zeros_like(param, device = DEVICE, requires_grad = False)
             self.MS[name] = torch.zeros_like(param, device = DEVICE, requires_grad = False)
             for kk in range(self.N):
