@@ -14,7 +14,7 @@ if torch.cuda.is_available():
 else:
     DEVICE = "cpu"
 
-DEVICE = "cpu"
+# DEVICE = "cpu"
 
 # Build the environment class
 class Environment(object):
@@ -198,8 +198,9 @@ class Agent(object):
         self.mu = torch.zeros(self.N, self.D_a, device = DEVICE) # Expected action
         self.sigma = torch.zeros(self.N, device = DEVICE) # Action noise
 
-        # We detach the computational graph
-        self.z.backward(retain_graph = False) 
+        # We zero out the gradients
+        for name, param in self.Layers.named_parameters():
+            param.grad = None
         
         # We also zero out the eligibility traces and the entropy gradients
         for name, param in self.Layers.named_parameters():
@@ -210,7 +211,10 @@ class Agent(object):
     def sever(self):
         # This function prevents gradients flowing backwards and zeros out the eligibility trace.
         self.z = self.z.clone().detach()
-        self.z.backward(retain_graph = False) # This prevents gradients flowing backwards
+        # We zero out the gradients
+        for name, param in self.Layers.named_parameters():
+            param.grad = None
+        
         self.recompute_outputs()
         
         for name, param in self.Layers.named_parameters():
@@ -218,6 +222,8 @@ class Agent(object):
             self.Entropy_gradients[name] = torch.zeros_like(param, device = DEVICE, requires_grad = False)
             for kk in range(self.N):
                 self.Eligibility_traces[kk][name] = torch.zeros_like(param, device = DEVICE, requires_grad = False)
+
+        
     
     def update_weights(self, num_of_steps):
         # This method updates the weights of the network using the total gradient
