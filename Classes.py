@@ -168,7 +168,8 @@ class Agent(object):
         nn.utils.clip_grad_value_(self.Layers.parameters(), clip_value=1) # Clip the gradients to have absolute value at most 1
         
         for name, param in self.Layers.named_parameters():
-            self.Entropy_gradients[name] = param.grad
+            if param.grad is not None:
+                self.Entropy_gradients[name] = param.grad
             
     def update_total_gradient(self):
         for name, _ in self.Layers.named_parameters():
