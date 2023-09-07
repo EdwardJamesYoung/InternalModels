@@ -211,7 +211,7 @@ class Agent(object):
     def sever(self):
         # This function prevents gradients flowing backwards and zeros out the eligibility trace.
         #self.z = self.z.clone().detach()
-        self.z.detach_() 
+        self.z.detach_()
         self.h.detach_()
         self.v.detach_()
         self.v_prev.detach_()
