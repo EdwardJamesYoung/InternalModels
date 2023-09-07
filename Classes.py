@@ -14,6 +14,8 @@ if torch.cuda.is_available():
 else:
     DEVICE = "cpu"
 
+DEVICE = "cpu"
+
 # Build the environment class
 class Environment(object):
     def __init__(self, D_s, D_o, D_a, dt, num_of_agents):
@@ -93,11 +95,11 @@ class Agent(object):
         self.MS = {} # This is a dictionary containing the moving squared sum of the gradients for each parameter
         
         for name, param in self.Layers.named_parameters():
-            self.Total_gradients[name] = torch.zeros_like(param, device = DEVICE) 
-            self.Entropy_gradients[name] = torch.zeros_like(param, device = DEVICE)
-            self.MS[name] = torch.zeros_like(param, device = DEVICE)
+            self.Total_gradients[name] = torch.zeros_like(param, device = DEVICE, requres_grad = False) 
+            self.Entropy_gradients[name] = torch.zeros_like(param, device = DEVICE, requires_grad = False)
+            self.MS[name] = torch.zeros_like(param, device = DEVICE, requires_grad = False)
             for kk in range(self.N):
-                self.Eligibility_traces[kk][name] = torch.zeros_like(param, device = DEVICE)
+                self.Eligibility_traces[kk][name] = torch.zeros_like(param, device = DEVICE, requires_grad = False)
 
     def load_weights(self, path):
         # This method loads the weights from a given path
@@ -137,7 +139,8 @@ class Agent(object):
         
         for kk in range(self.N):
             for name, param in self.Layers.named_parameters():
-                param.grad = torch.zeros_like(param, device = DEVICE) # Zero out the gradients
+                # param.grad = torch.zeros_like(param, device = DEVICE) # Zero out the gradients
+                param.grad = None
             loss[kk].backward(retain_graph = True)
             nn.utils.clip_grad_value_(self.Layers.parameters(), clip_value=1) # Clip the gradients to have absolute value at most 1
             for name, param in self.Layers.named_parameters(): 
@@ -155,7 +158,8 @@ class Agent(object):
         
         # First we zero out all the gradients:
         for name, param in self.Layers.named_parameters():
-            param.grad = torch.zeros_like(param, device = DEVICE)
+            # param.grad = torch.zeros_like(param, device = DEVICE)
+            param.grad = None
 
         # Now we define the function of which we wish to take the derivative:
         Entropy = self.D_a*torch.log(self.sigma).mean() 
@@ -191,23 +195,27 @@ class Agent(object):
 
         self.mu = torch.zeros(self.N, self.D_a, device = DEVICE) # Expected action
         self.sigma = torch.zeros(self.N, device = DEVICE) # Action noise
+
+        # We detach the computational graph
+        self.z.backward(torch.zeros_like(self.z), retain_graph = False) 
         
         # We also zero out the eligibility traces and the entropy gradients
         for name, param in self.Layers.named_parameters():
-            self.Entropy_gradients[name] = torch.zeros_like(param, device = DEVICE)
+            self.Entropy_gradients[name] = torch.zeros_like(param, device = DEVICE, requires_grad = False)
             for kk in range(self.N):
-                self.Eligibility_traces[kk][name] = torch.zeros_like(param, device = DEVICE)
+                self.Eligibility_traces[kk][name] = torch.zeros_like(param, device = DEVICE, requires_grad = False)
 
     def sever(self):
         # This function prevents gradients flowing backwards and zeros out the eligibility trace.
         self.z = self.z.clone().detach()
+        self.z.backward(torch.zeros_like(self.z), retain_graph = False) # This prevents gradients flowing backwards
         self.recompute_outputs()
         
         for name, param in self.Layers.named_parameters():
-            self.Total_gradients[name] = torch.zeros_like(param, device = DEVICE)
-            self.Entropy_gradients[name] = torch.zeros_like(param, device = DEVICE)
+            self.Total_gradients[name] = torch.zeros_like(param, device = DEVICE, requires_grad = False)
+            self.Entropy_gradients[name] = torch.zeros_like(param, device = DEVICE, requires_grad = False)
             for kk in range(self.N):
-                self.Eligibility_traces[kk][name] = torch.zeros_like(param, device = DEVICE)
+                self.Eligibility_traces[kk][name] = torch.zeros_like(param, device = DEVICE, requires_grad = False)
     
     def update_weights(self, num_of_steps):
         # This method updates the weights of the network using the total gradient

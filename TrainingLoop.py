@@ -24,12 +24,14 @@ T_prob = 0.002 # Termination probability for each time-step
 lr = 0.001 # Learning rate for the network
 Total_steps = 150000 # The total number of training steps
 Update_steps = 50 # Number of steps to perform between each update
-Num_of_agents = 48 # Number of independent agent environment interactions
+Num_of_agents = 40 # Number of independent agent environment interactions
 
 if torch.cuda.is_available():
     DEVICE = "cuda"
 else:
     DEVICE = "cpu"
+
+DEVICE = "cpu" 
 
 print("Device:", DEVICE)
 
