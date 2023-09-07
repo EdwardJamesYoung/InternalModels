@@ -144,7 +144,8 @@ class Agent(object):
             loss[kk].backward(retain_graph = True)
             nn.utils.clip_grad_value_(self.Layers.parameters(), clip_value=1) # Clip the gradients to have absolute value at most 1
             for name, param in self.Layers.named_parameters(): 
-                self.Eligibility_traces[kk][name] = self.lbda*self.Eligibility_traces[kk][name] + param.grad
+                if param.grad is not None:
+                    self.Eligibility_traces[kk][name] = self.lbda*self.Eligibility_traces[kk][name] + param.grad
                 
     def recompute_outputs(self):
         # When run, this method simply recomputes the value estimate, expected action, and action noise from the current latent activities. 
