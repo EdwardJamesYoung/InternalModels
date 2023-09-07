@@ -118,9 +118,9 @@ class Agent(object):
     def compute_delta(self, r):
         # Compute the reward prediction error 
         self.update_r_bar(r) # Update the running average of the rewards
-        self.v_prev = self.v # Update the previous value estimate
+        self.v_prev = self.v.clone().detach() # Update the previous value estimate
         self.compute_value() # Compute the current value estimate
-        self.delta = r.unsqueeze(1) - self.r_bar*torch.ones(self.N,1,device=DEVICE) + self.v - self.v_prev # Compute the reward prediction error. This has dimensions (N, 1)
+        self.delta = r.unsqueeze(1) - self.r_bar*torch.ones(self.N,1,device=DEVICE) + self.v.clone().detach() - self.v_prev # Compute the reward prediction error. This has dimensions (N, 1)
     
     def update_activities(self, a, o):
         self.h = F.relu(self.Layers["Observation"]( torch.cat((self.z, o), dim = 1) )) 
@@ -210,7 +210,15 @@ class Agent(object):
 
     def sever(self):
         # This function prevents gradients flowing backwards and zeros out the eligibility trace.
-        self.z = self.z.clone().detach()
+        #self.z = self.z.clone().detach()
+        self.z.detach_() 
+        self.h.detach_()
+        self.v.detach_()
+        self.v_prev.detach_()
+        self.delta.detach_()
+        self.mu.detach_()
+        self.sigma.detach_()
+
         # We zero out the gradients
         for name, param in self.Layers.named_parameters():
             param.grad = None
