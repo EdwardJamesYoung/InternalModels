@@ -14,11 +14,12 @@ current_date = datetime.now()
 formatted_date = current_date.strftime('%m-%d-%H')
 
 # We define the parameters of the system
-D_s = 200 # Dimension of the latent environmental state
-D_o = 10 # Dimension of the observation space
-D_a = 10 # Dimension of the action space
+D_s = 100 # Dimension of the latent environmental state
+D_o = 20 # Dimension of the observation space
+D_a = 20 # Dimension of the action space
 D_z = 40 # Dimension of the internal latent space
 D_h = 80 # Dimension of the hidden layer in the network
+Q_r = 20 # Dimension of the quadratic rank
 dt = 0.2 # Time-step parameter
 T_prob = 0.002 # Termination probability for each time-step
 lr = 0.001 # Learning rate for the network
@@ -42,7 +43,7 @@ Rewards_decay_norm = 0 # We will use this to normalise the low pass filtered rew
 
 # Create the environments and agents
 print("Creating agents and environments.")
-agent = Classes.Agent(D_a, D_o, D_z, D_h, dt, Num_of_agents, lr)
+agent = Classes.Agent(D_a, D_o, D_z, D_h, Q_r, dt, Num_of_agents, lr)
 environment = Classes.Environment(D_s, D_o, D_a, dt, Num_of_agents)
 actions = torch.zeros(Num_of_agents, D_a, device=DEVICE)
 observations = torch.zeros(Num_of_agents, D_o, device=DEVICE)
@@ -115,8 +116,8 @@ Rewards_low_pass_filter = Rewards_low_pass_filter[1:]
 fig, ax = plt.subplots(figsize = (8,5))
 ax.plot(Rewards_low_pass_filter)
 ax.tick_params(labelsize = 18)
-ax.xlabel('Training step', fontsize = 20)
-ax.ylabel('Reward running average', fontsize = 20)
-ax.title('Reward profile', fontsize = 20)
+ax.set_xlabel('Training step', fontsize = 20)
+ax.set_ylabel('Reward running average', fontsize = 20)
+ax.set_title('Reward profile', fontsize = 20)
 fig.savefig(os.path.join(save_path, f'Reward_profile_{formatted_date}.pdf'), bbox_inches='tight')
 

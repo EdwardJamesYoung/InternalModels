@@ -42,11 +42,12 @@ class Environment(object):
     
     def step(self, a):
         # Given an action, update the state vector.
-        self.s = (self.s@self.P + a@self.Q).detach()
+        self.s = (self.s@self.P + a@self.Q).detach() # self.s has dimensions (N, D_s)
         
         # Return the observation of the next state, along with the reward associated with that state. 
         o = (self.s@self.K).detach()
-        r = (self.s@self.rho).detach()
+        # The reward has dimension (N, 1)
+        r = (self.s@self.rho - (1/2)*torch.sum(self.s*self.s, dim = 1, keepdim = True) - (1/2)*torch.sum(self.a*self.a, dim = 1, keepdim = True)  ).detach() 
         return o, r
     
     def reset(self):
@@ -54,11 +55,12 @@ class Environment(object):
     
 # Here, we generate the actor-critic network with relevant initialisations.
 class Agent(object):
-    def __init__(self, D_a, D_o, D_z, D_h, dt, num_of_agents, lr):
+    def __init__(self, D_a, D_o, D_z, D_h, Q_r, dt, num_of_agents, lr):
         self.D_a = D_a # The dimension of the action space of the agent
         self.D_o = D_o # The dimension of the observation space of the agent
         self.D_z = D_z # The dimension of the latent activity layer
         self.D_h = D_h # The dimension of the hidden activity layer
+        self.Qrank = Q_r # The rank of the quadratic matrix Q
         self.N = num_of_agents # The number of agents in the environment
         self.dt = dt # Time step parameter
         self.sig_max = 2 # The maximum level of action noise
@@ -86,7 +88,8 @@ class Agent(object):
             "Hidden-Latent": nn.Linear(D_h + D_a, D_z, device = DEVICE),
             "Action": nn.Linear(D_z, D_a, device = DEVICE),
             "Noise": nn.Linear(D_z, 1, device = DEVICE),
-            "Value": nn.Linear(D_z, 1, device = DEVICE)
+            "Linear Value": nn.Linear(D_z, 1, device = DEVICE),
+            "Quadratic Value": nn.Linear(D_z, Q_r, device = DEVICE, bias = False)
         })
         
         self.Eligibility_traces = [{}]*self.N # This is a list of dictionaries containing the eligibility traces for each parameter 
@@ -106,14 +109,14 @@ class Agent(object):
         self.Layers.load_state_dict(torch.load(path))
             
     def sample_action(self):
-        mu_unnorm = self.Layers["Action"](self.z) # mu_unnorm has dimensions (N, D_a)
-        self.mu = F.normalize(mu_unnorm, p = 2, dim = 1) # normalize the action to have unit norm for each agent. mu has dimensions (N, D_a)
+        self.mu = self.Layers["Action"](self.z) # mu_unnorm has dimensions (N, D_a)
         self.sigma = (self.sig_max - self.sig_min)*F.sigmoid(self.Layers["Noise"](self.z)) + self.sig_min # sigma has dimensions (N, 1)
         a = self.mu + self.sigma*torch.randn(self.N, self.D_a, device = DEVICE) # a has dimensions (N, D_a)
         return a.detach() 
     
     def compute_value(self):
-        self.v = self.Layers["Value"](self.z) # v has dimensions (N, 1)
+        q = self.Layers["Quadratic Value"](self.z) # q has dimensions (N, Qrank)
+        self.v = self.Layers["Linear Value"](self.z) - (1/2)*torch.sum( q*q, dim = 1, keepdim = True ) # v has dimensions (N, 1)
         
     def compute_delta(self, r):
         # Compute the reward prediction error 
